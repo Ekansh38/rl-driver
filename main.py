@@ -74,6 +74,7 @@ prev_lap_count = 0
 car = car.Car(1100, 600)
 
 running = True
+paused = False
 while running:
     if visual_mode:
         dt = clock.get_time() / 1000
@@ -89,6 +90,8 @@ while running:
             continue
 
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                paused = not paused
             hud.handle_keydown(event.key)
         if event.type == pygame.MOUSEBUTTONDOWN:
             hud.handle_mousedown(event.pos, car)
@@ -103,30 +106,31 @@ while running:
     else:
         keys = {"up": False, "down": False, "left": False, "right": False, "brake": False} # dummy
 
-    car.update(dt, keys)
-
-    # record telemetry
-    if lap_timer and lap_timer.state == "timing":
-        telemetry.record(car.velocity.length(), keys['up'], keys['brake'] or keys['down'])
-    if lap_timer and len(lap_timer.laps) > prev_lap_count:
-        telemetry.finish_lap()
-        prev_lap_count = len(lap_timer.laps)
-
-    # bounce of walls
-    if not is_on_track(car.position, car.track_margin):
-        car.position -= car.velocity * dt
-        if visual_mode:
-            car.velocity *= -car.bounce
-        else:
-            car.velocity *= 0
-
     blocked_by_line = False
-    if lap_timer and lap_timer.state == "timing":
-        if car.position.distance_to(lap_timer.center) < lap_timer.proximity * 2:
-            backward_vel = car.velocity.dot(lap_timer.normal)
-            if backward_vel > 0:
-                car.velocity -= lap_timer.normal * backward_vel
-                blocked_by_line = True
+    if not paused:
+        car.update(dt, keys)
+
+        # record telemetry
+        if lap_timer and lap_timer.state == "timing":
+            telemetry.record(car.velocity.length(), keys['up'], keys['brake'] or keys['down'])
+        if lap_timer and len(lap_timer.laps) > prev_lap_count:
+            telemetry.finish_lap()
+            prev_lap_count = len(lap_timer.laps)
+
+        # bounce off walls
+        if not is_on_track(car.position, car.track_margin):
+            car.position -= car.velocity * dt
+            if visual_mode:
+                car.velocity *= -car.bounce
+            else:
+                car.velocity *= 0
+
+        if lap_timer and lap_timer.state == "timing":
+            if car.position.distance_to(lap_timer.center) < lap_timer.proximity * 2:
+                backward_vel = car.velocity.dot(lap_timer.normal)
+                if backward_vel > 0:
+                    car.velocity -= lap_timer.normal * backward_vel
+                    blocked_by_line = True
 
     screen.blit(track_img, (0, 0))
 
@@ -140,8 +144,19 @@ while running:
     if visual_mode:
         car.draw(screen)
 
+        if paused:
+            panel_w = 1280
+            panel_h = 720
+            surf = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+            surf.fill((0, 0, 0, 200))
+            screen.blit(surf, (0,0))
+
+            msg = hud.font.render("PAUSED", True, (255, 255, 255))
+            screen.blit(msg, (config.WIDTH // 2 - msg.get_width() // 2, config.HEIGHT - 42))
+
         if lap_timer:
-            lap_timer.update(car.position, car.velocity, dt)
+            if not paused:
+                lap_timer.update(car.position, car.velocity, dt)
             hud.draw(screen, car, lap_timer, telemetry)
 
         if blocked_by_line:

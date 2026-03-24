@@ -89,7 +89,7 @@ class HUD:
     def _draw_toggle_button(self, screen):
         sw, sh = screen.get_size()
         btn_w, btn_h = 64, 28
-        x = sw // 2 - btn_w // 2
+        x = 12
         y = sh - 52
 
         self.button_rect = pygame.Rect(x, y, btn_w, btn_h)
@@ -103,7 +103,7 @@ class HUD:
         screen.blit(label, (x + btn_w // 2 - label.get_width() // 2, y + btn_h // 2 - label.get_height() // 2))
 
         hint = self.font_label.render("[TAB]", True, (130, 130, 130))
-        screen.blit(hint, (sw // 2 - hint.get_width() // 2, y + btn_h + 3))
+        screen.blit(hint, (x + btn_w // 2 - hint.get_width() // 2, y + btn_h + 3))
 
     def _draw_panel(self, screen, x, y, lines):
         panel_w = 240
