@@ -6,6 +6,7 @@ import json
 import math
 from racing_env.start_line import find_start_line
 from racing_env.lap_timer import LapTimer
+from racing_env.telemetry import LapTelemetry
 from hud import HUD
 
 # simple init stuf
@@ -67,13 +68,17 @@ else:
     lap_timer = None
 
 hud = HUD()
+telemetry = LapTelemetry()
+prev_lap_count = 0
 
 car = car.Car(1100, 600)
 
 running = True
 while running:
-    dt = clock.get_time() / 1000
-    #dt = 1/60  # for training
+    if visual_mode:
+        dt = clock.get_time() / 1000
+    else:
+        dt = 1/60
 
     clock.tick(config.FPS)
     for event in pygame.event.get():
@@ -84,8 +89,7 @@ while running:
             continue
 
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_TAB:
-                hud.toggle()
+            hud.handle_keydown(event.key)
         if event.type == pygame.MOUSEBUTTONDOWN:
             hud.handle_mousedown(event.pos, car)
         if event.type == pygame.MOUSEMOTION:
@@ -100,6 +104,15 @@ while running:
         keys = {"up": False, "down": False, "left": False, "right": False, "brake": False} # dummy
 
     car.update(dt, keys)
+
+    # record telemetry
+    if lap_timer and lap_timer.state == "timing":
+        telemetry.record(car.velocity.length(), keys['up'], keys['brake'] or keys['down'])
+    if lap_timer and len(lap_timer.laps) > prev_lap_count:
+        telemetry.finish_lap()
+        prev_lap_count = len(lap_timer.laps)
+
+    # bounce of walls
     if not is_on_track(car.position, car.track_margin):
         car.position -= car.velocity * dt
         if visual_mode:
@@ -129,10 +142,17 @@ while running:
 
         if lap_timer:
             lap_timer.update(car.position, car.velocity, dt)
-            hud.draw(screen, car, lap_timer)
+            hud.draw(screen, car, lap_timer, telemetry)
 
         if blocked_by_line:
-            msg = hud.font.render("can't go backwards past start line", True, (255, 80, 80))
+            # temporary pannel in midle
+            panel_w = 500
+            panel_h = 100
+            surf = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+            surf.fill((0, 0, 0, 220))
+            screen.blit(surf, (config.WIDTH//2-(panel_w//2), config.HEIGHT//2-(panel_h//2), panel_w, panel_h))
+
+            msg = hud.font.render("can't go backwards past start line", True, (255, 0, 0))
             screen.blit(msg, (config.WIDTH // 2 - msg.get_width() // 2, config.HEIGHT // 2 - msg.get_height() // 2))
     else:
         if lap_timer:
