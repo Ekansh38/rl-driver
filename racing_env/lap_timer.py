@@ -55,5 +55,3 @@ class LapTimer:
             for i, lap in enumerate(laps):
                 last_label = font.render(f"Last: {lap:.2f}s", True, config.BLACK)
                 screen.blit(last_label, (pos[0], pos[1] + label.get_height() + 4 + (last_label.get_height() * i)))
-
-
