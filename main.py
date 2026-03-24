@@ -103,7 +103,7 @@ while running:
     if not is_on_track(car.position, car.track_margin):
         car.position -= car.velocity * dt
         if visual_mode:
-            car.velocity *= -0.4  # bounce
+            car.velocity *= -car.bounce
         else:
             car.velocity *= 0
 
