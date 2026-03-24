@@ -82,7 +82,11 @@ while running:
             if event.key == pygame.K_TAB:
                 hud.toggle()
         if event.type == pygame.MOUSEBUTTONDOWN:
-            hud.handle_click(event.pos)
+            hud.handle_mousedown(event.pos, car)
+        if event.type == pygame.MOUSEMOTION:
+            hud.handle_mousemotion(event.pos, car)
+        if event.type == pygame.MOUSEBUTTONUP:
+            hud.handle_mouseup()
     screen.fill(config.BLACK)
 
     keys = get_human_action(pygame.key.get_pressed())
