@@ -10,6 +10,8 @@ from hud import HUD
 
 # simple init stuf
 
+visual_mode = False
+
 pygame.init()
 screen = pygame.display.set_mode((config.WIDTH, config.HEIGHT))
 pygame.display.set_caption("rl-driver")
@@ -78,6 +80,10 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+        if not visual_mode:
+            continue
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_TAB:
                 hud.toggle()
@@ -89,7 +95,10 @@ while running:
             hud.handle_mouseup()
     screen.fill(config.BLACK)
 
-    keys = get_human_action(pygame.key.get_pressed())
+    if visual_mode:
+        keys = get_human_action(pygame.key.get_pressed())
+    else:
+        keys = {"up": False, "down": False, "left": False, "right": False, "brake": False} # dummy
 
     car.update(dt, keys)
     if not is_on_track(car.position):
@@ -111,11 +120,12 @@ while running:
 #        screen.blit(surf, (wp.x - wp_size // 2, wp.y - wp_size // 2))
 
 
-    car.draw(screen)
+    if visual_mode:
+        car.draw(screen)
 
-    if lap_timer:
-        lap_timer.update(car.position, car.velocity, dt)
-        hud.draw(screen, car, lap_timer)
+        if lap_timer:
+            lap_timer.update(car.position, car.velocity, dt)
+            hud.draw(screen, car, lap_timer)
 
     # push buffer to screen
     pygame.display.flip()       
