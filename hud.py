@@ -6,6 +6,7 @@ SLIDERS = [
     ("brake_force",        "BRAKE",      50, 500),
     ("turn_speed",         "TURN",       50, 600),
     ("side_friction",      "FRICTION", 0.1, 2.0),
+    ("track_margin",       "MARGIN",    -30,  20),
 ]
 
 

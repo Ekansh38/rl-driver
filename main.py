@@ -34,10 +34,9 @@ scale_y = config.HEIGHT / 90
 waypoints = [pygame.Vector2(wp.x * scale_x, wp.y * scale_y) for wp in waypoints]
 track_width_scaled = track_width * scale_x
 
-def is_on_track(pos):
-    extra = 0 #20 for perfect
+def is_on_track(pos, margin=0):
     return any(
-        max(abs(pos.x - wp.x), abs(pos.y - wp.y)) + extra < track_width_scaled
+        max(abs(pos.x - wp.x), abs(pos.y - wp.y)) + margin < track_width_scaled
         for wp in waypoints
     )
 
@@ -101,12 +100,12 @@ while running:
         keys = {"up": False, "down": False, "left": False, "right": False, "brake": False} # dummy
 
     car.update(dt, keys)
-    if not is_on_track(car.position):
+    if not is_on_track(car.position, car.track_margin):
         car.position -= car.velocity * dt
         car.velocity *= 0
 
     if lap_timer and lap_timer.state == "timing":
-        if car.position.distance_to(lap_timer.center) < lap_timer.proximity:
+        if car.position.distance_to(lap_timer.center) < lap_timer.proximity * 2:
             backward_vel = car.velocity.dot(lap_timer.normal)
             if backward_vel > 0:
                 car.velocity -= lap_timer.normal * backward_vel

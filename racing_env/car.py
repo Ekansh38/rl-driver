@@ -17,6 +17,7 @@ class Car:
         self.max_speed = 400
         self.turn_speed = 325
         self.side_friction = 0.8
+        self.track_margin = 0
 
     def get_forward_vector(self):
         rad = math.radians(self.angle)
