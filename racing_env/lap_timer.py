@@ -11,7 +11,7 @@ class LapTimer:
         self.proximity = proximity_threshold
         self.state = "waiting"   # "waiting" | "timing"
         self.start_time = 0.0
-        self.last_lap = None
+        self.laps = []
         self.prev_dist = None
         self.cooldown = 0.0
 
@@ -31,7 +31,7 @@ class LapTimer:
                     self.start_time = now
                     self.cooldown = self.COOLDOWN
                 elif self.state == "timing":
-                    self.last_lap = now - self.start_time
+                    self.laps.append(now - self.start_time)
                     self.start_time = now
                     self.cooldown = self.COOLDOWN
 
@@ -50,6 +50,10 @@ class LapTimer:
             label = font.render("Cross start line to begin", True, config.BLACK)
         screen.blit(label, pos)
 
-        if self.last_lap is not None:
-            last_label = font.render(f"Last: {self.last_lap:.2f}s", True, config.BLACK)
-            screen.blit(last_label, (pos[0], pos[1] + label.get_height() + 4))
+        if self.laps != []:
+            laps = reversed(self.laps[-3:])  # last 3 laps
+            for i, lap in enumerate(laps):
+                last_label = font.render(f"Last: {lap:.2f}s", True, config.BLACK)
+                screen.blit(last_label, (pos[0], pos[1] + label.get_height() + 4 + (last_label.get_height() * i)))
+
+

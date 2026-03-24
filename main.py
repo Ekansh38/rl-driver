@@ -61,7 +61,7 @@ else:
 
 font = pygame.font.Font(None, 36)
 
-car = car.Car(100, 100)
+car = car.Car(1100, 600)
 
 running = True
 while running:
