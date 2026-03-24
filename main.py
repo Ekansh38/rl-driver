@@ -102,13 +102,18 @@ while running:
     car.update(dt, keys)
     if not is_on_track(car.position, car.track_margin):
         car.position -= car.velocity * dt
-        car.velocity *= 0
+        if visual_mode:
+            car.velocity *= -0.4  # bounce
+        else:
+            car.velocity *= 0
 
+    blocked_by_line = False
     if lap_timer and lap_timer.state == "timing":
         if car.position.distance_to(lap_timer.center) < lap_timer.proximity * 2:
             backward_vel = car.velocity.dot(lap_timer.normal)
             if backward_vel > 0:
                 car.velocity -= lap_timer.normal * backward_vel
+                blocked_by_line = True
 
     screen.blit(track_img, (0, 0))
 
@@ -125,6 +130,10 @@ while running:
         if lap_timer:
             lap_timer.update(car.position, car.velocity, dt)
             hud.draw(screen, car, lap_timer)
+
+        if blocked_by_line:
+            msg = hud.font.render("can't go backwards past start line", True, (255, 80, 80))
+            screen.blit(msg, (config.WIDTH // 2 - msg.get_width() // 2, config.HEIGHT // 2 - msg.get_height() // 2))
     else:
         if lap_timer:
             lap_timer.update(car.position, car.velocity, dt)
