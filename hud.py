@@ -24,9 +24,9 @@ class HUD:
 
     def __init__(self):
         self.level = 0
-        self.font = pygame.font.Font(None, 28)
-        self.font_label = pygame.font.Font(None, 22)
-        self.font_btn = pygame.font.Font(None, 24)
+        self.font = pygame.font.SysFont("menlo", 22)
+        self.font_label = pygame.font.SysFont("menlo", 17)
+        self.font_btn = pygame.font.SysFont("menlo", 18)
         self.button_rect = None
         self._slider_rects = []  # list of (attr, bar_rect, min_v, max_v)
         self._dragging = None    # (attr, bar_rect, min_v, max_v)
@@ -207,8 +207,8 @@ class HUD:
         sw, sh = screen.get_size()
         self._slider_rects = []
 
-        panel_w = 320
-        row_h = 36
+        panel_w = 420
+        row_h = 42
         header_h = self.LINE_HEIGHT + self.PADDING
         panel_h = header_h + len(SLIDERS) * row_h + self.PADDING
         x = sw // 2 - panel_w // 2
