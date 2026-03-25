@@ -11,7 +11,7 @@ class LapTimer:
         self.proximity = proximity_threshold
         self.state = "waiting"  # "waiting" | "timing"
         self.start_time = 0.0
-        self.laps = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        self.laps = []
         self.prev_dist = None
         self.cooldown = 0.0
         self.paused = False
