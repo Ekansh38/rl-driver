@@ -14,14 +14,16 @@ from hud import HUD
 visual_mode = True
 
 pygame.init()
-screen = pygame.display.set_mode((config.WIDTH, config.HEIGHT))
+screen = pygame.display.set_mode((config.WIDTH, config.HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("rl-driver")
+_rs = config.RENDER_SCALE
+game_surface = pygame.Surface((config.WIDTH * _rs, config.HEIGHT * _rs))
 clock = pygame.time.Clock()
 
 # load waypoints
 
 track_img = pygame.image.load("assets/waypoint_layer.png").convert()
-track_img = pygame.transform.scale(track_img, (config.WIDTH, config.HEIGHT))
+track_img = pygame.transform.scale(track_img, (config.WIDTH * _rs, config.HEIGHT * _rs))
 
 with open("track.json") as f:
     track_data = json.load(f)
@@ -60,6 +62,7 @@ def get_forward_normal(line_center, waypoints):
 
 
 track_img = pygame.image.load("assets/bg.png").convert()
+track_img = pygame.transform.scale(track_img, (config.WIDTH * _rs, config.HEIGHT * _rs))
 
 raw = find_start_line("assets/waypoint_layer.png")
 start_center = pygame.Vector2(raw.x * scale_x, raw.y * scale_y) if raw else None
@@ -74,6 +77,12 @@ else:
 hud = HUD()
 telemetry = LapTelemetry()
 prev_lap_count = 0
+
+def screen_to_game(pos):
+    sw, sh = screen.get_size()
+    rs = config.RENDER_SCALE
+    return (pos[0] * config.WIDTH * rs // sw, pos[1] * config.HEIGHT * rs // sh)
+
 
 car_spawn = pygame.Vector2(1100, 600)
 start_angle = 90
@@ -127,12 +136,12 @@ while running:
             hud.handle_keydown(event.key)
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-            hud.handle_mousedown(event.pos, car)
+            hud.handle_mousedown(screen_to_game(event.pos), car)
         if event.type == pygame.MOUSEMOTION:
-            hud.handle_mousemotion(event.pos, car)
+            hud.handle_mousemotion(screen_to_game(event.pos), car)
         if event.type == pygame.MOUSEBUTTONUP:
             hud.handle_mouseup()
-    screen.fill(config.BLACK)
+    game_surface.fill(config.BLACK)
 
     if visual_mode:
         keys = get_human_action(pygame.key.get_pressed())
@@ -173,64 +182,59 @@ while running:
                     car.velocity -= lap_timer.normal * backward_vel
                     blocked_by_line = True
 
-    screen.blit(track_img, (0, 0))
+    game_surface.blit(track_img, (0, 0))
 
     #    for wp in waypoints:
     #        wp_size = math.ceil(max(scale_x, scale_y) * math.sqrt(2))
     #        surf = pygame.Surface((wp_size, wp_size))
     #        surf.fill(config.BLUE)
-    #        screen.blit(surf, (wp.x - wp_size // 2, wp.y - wp_size // 2))
+    #        game_surface.blit(surf, (wp.x - wp_size // 2, wp.y - wp_size // 2))
 
     if visual_mode:
-        car.draw(screen)
+        car.draw(game_surface)
 
         if paused:
-            panel_w = 1280
-            panel_h = 720
+            rs = config.RENDER_SCALE
+            panel_w = config.WIDTH * rs
+            panel_h = config.HEIGHT * rs
             surf = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
             surf.fill((0, 0, 0, 200))
-            screen.blit(surf, (0, 0))
+            game_surface.blit(surf, (0, 0))
 
             msg = hud.font.render("PAUSED", True, (255, 255, 255))
-            screen.blit(
-                msg, (config.WIDTH // 2 - msg.get_width() // 2, config.HEIGHT - 42)
+            game_surface.blit(
+                msg, (panel_w // 2 - msg.get_width() // 2, panel_h - 42 * rs)
             )
 
         if lap_timer:
             if not paused:
                 lap_timer.update(car.position, car.velocity, dt)
-            hud.draw(screen, car, lap_timer, telemetry)
+            hud.draw(game_surface, car, lap_timer, telemetry)
 
         if blocked_by_line:
             # temporary pannel in midle
-            panel_w = 500
-            panel_h = 100
+            rs = config.RENDER_SCALE
+            panel_w = 500 * rs
+            panel_h = 100 * rs
+            cx = config.WIDTH * rs // 2
+            cy = config.HEIGHT * rs // 2
             surf = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
             surf.fill((0, 0, 0, 220))
-            screen.blit(
-                surf,
-                (
-                    config.WIDTH // 2 - (panel_w // 2),
-                    config.HEIGHT // 2 - (panel_h // 2),
-                    panel_w,
-                    panel_h,
-                ),
-            )
+            game_surface.blit(surf, (cx - panel_w // 2, cy - panel_h // 2))
 
             msg = hud.font.render(
                 "can't go backwards past start line", True, (255, 0, 0)
             )
-            screen.blit(
+            game_surface.blit(
                 msg,
-                (
-                    config.WIDTH // 2 - msg.get_width() // 2,
-                    config.HEIGHT // 2 - msg.get_height() // 2,
-                ),
+                (cx - msg.get_width() // 2, cy - msg.get_height() // 2),
             )
     else:
         if lap_timer:
             lap_timer.update(car.position, car.velocity, dt)
 
-    # push buffer to screen
+    # scale game surface to actual window size and push to screen
+    scaled = pygame.transform.smoothscale(game_surface, screen.get_size())
+    screen.blit(scaled, (0, 0))
     pygame.display.flip()
 pygame.quit()

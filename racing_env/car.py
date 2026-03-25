@@ -4,8 +4,9 @@ import config
 
 class Car:
     def __init__(self, x, y, angle):
+        rs = config.RENDER_SCALE
         self.surface = pygame.image.load(config.CAR_IMAGE_PATH).convert_alpha()
-        self.surface = pygame.transform.scale(self.surface, (40, 40))
+        self.surface = pygame.transform.scale(self.surface, (40 * rs, 40 * rs))
 
         self.position = pygame.Vector2(x, y)
         self.velocity = pygame.Vector2(0, 0)
@@ -63,6 +64,7 @@ class Car:
         self.position += self.velocity * dt
 
     def draw(self, screen):
+        rs = config.RENDER_SCALE
         rotated = pygame.transform.rotate(self.surface, self.angle)
-        rect = rotated.get_rect(center=self.position)
+        rect = rotated.get_rect(center=self.position * rs)
         screen.blit(rotated, rect.topleft)
