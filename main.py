@@ -209,7 +209,7 @@ while running:
         if lap_timer:
             if not paused:
                 lap_timer.update(car.position, car.velocity, dt)
-            hud.draw(game_surface, car, lap_timer, telemetry)
+            hud.draw(game_surface, car, lap_timer, telemetry, fps=clock.get_fps())
 
         if blocked_by_line:
             # temporary pannel in midle

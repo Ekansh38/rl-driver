@@ -80,7 +80,8 @@ class HUD:
         value = min_v + t * (max_v - min_v)
         setattr(car, attr, round(value, 2))
 
-    def draw(self, screen, car, lap_timer, telemetry=None, ai_stats=None):
+    def draw(self, screen, car, lap_timer, telemetry=None, ai_stats=None, fps=None):
+        self._fps = fps
         self._draw_toggle_button(screen)
         self._draw_graph_button(screen)
         if self.graph_open:
@@ -221,7 +222,9 @@ class HUD:
         rs = self.rs
         fwd = car.get_forward_vector()
         lateral = car.get_right_vector().dot(car.velocity)
+        fps_str = str(int(self._fps)) if self._fps is not None else "--"
         lines = [
+            ("FPS", fps_str),
             ("POS X", f"{car.position.x:.0f}"),
             ("POS Y", f"{car.position.y:.0f}"),
             ("ANGLE", f"{car.angle % 360:.1f}°"),
