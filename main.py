@@ -95,11 +95,21 @@ while running:
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
-                if paused == False and lap_timer:
+                if not paused and lap_timer:
                     lap_timer.pause()
                 elif lap_timer:
                     lap_timer.unpause()
                 paused = not paused
+            elif event.key == pygame.K_g:
+                if not hud.graph_open:
+                    if not paused and lap_timer:
+                        lap_timer.pause()
+                    paused = True
+                else:
+                    if paused and lap_timer:
+                        lap_timer.unpause()
+                    paused = False
+
             hud.handle_keydown(event.key)
         if event.type == pygame.MOUSEBUTTONDOWN:
             hud.handle_mousedown(event.pos, car)
