@@ -3,7 +3,7 @@ import pygame
 WIDTH = 1280
 HEIGHT = 720
 FPS = 500
-RENDER_SCALE = 1  # 1 = native 1280x720 
+RENDER_SCALE = 2  # 1 = native 1280x720 
 
 # COLORS
 WHITE = (255, 255, 255)

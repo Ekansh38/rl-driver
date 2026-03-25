@@ -90,6 +90,7 @@ car = car.Car(car_spawn.x, car_spawn.y, start_angle)
 
 running = True
 paused = False
+paused_mode = False
 while running:
     if visual_mode:
         dt = clock.get_time() / 1000
@@ -105,12 +106,11 @@ while running:
             continue
 
         if event.type == pygame.KEYDOWN:
+            was_paused = paused
+
             if event.key == pygame.K_SPACE:
-                if not paused and lap_timer:
-                    lap_timer.pause()
-                elif lap_timer:
-                    lap_timer.unpause()
-                paused = not paused
+                paused_mode = not paused_mode
+
             if event.key == pygame.K_r:
                 # RESET
                 car.position = pygame.Vector2(car_spawn)
@@ -118,22 +118,19 @@ while running:
                 car.angle = start_angle
                 if lap_timer:
                     lap_timer.reset()
-                paused = False
+                paused_mode = False
                 telemetry._current = []
 
-            elif event.key == pygame.K_g:
-                # PAUSE ON GRAPH
-                if not hud.graph_open:
-                    if not paused and lap_timer:
-                        lap_timer.pause()
-                    paused = True
-                else:
-                    if paused and lap_timer:
-                        lap_timer.unpause()
-                    paused = False
-
-            # UPDATE HUD
+            # HUD handles graph_open toggle on G
             hud.handle_keydown(event.key)
+
+            # paused is derived, true if user paused or graph is open
+            paused = paused_mode or hud.graph_open
+            if lap_timer:
+                if paused and not was_paused:
+                    lap_timer.pause()
+                elif not paused and was_paused:
+                    lap_timer.unpause()
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             hud.handle_mousedown(screen_to_game(event.pos), car)
@@ -193,7 +190,7 @@ while running:
     if visual_mode:
         car.draw(game_surface)
 
-        if paused:
+        if paused_mode:
             rs = config.RENDER_SCALE
             panel_w = config.WIDTH * rs
             panel_h = config.HEIGHT * rs
