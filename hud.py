@@ -406,7 +406,7 @@ class HUD:
 
         # connecting line also dots
         points = [to_pt(i, t) for i, t in enumerate(laps)]
-        pygame.draw.lines(screen, (100, 100, 100), False, points, 1)
+        pygame.draw.lines(screen, (255, 255, 255), False, points, 1)
 
         for i, (t, pt) in enumerate(zip(laps, points)):
             is_best = i == best_idx
