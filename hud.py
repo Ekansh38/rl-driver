@@ -26,21 +26,25 @@ class HUD:
 
     def __init__(self):
         self.level = 0
+        self.graph_open = False
         self.graph_idx = 0
         self.font = pygame.font.SysFont("menlo", 22)
         self.font_label = pygame.font.SysFont("menlo", 17)
         self.font_btn = pygame.font.SysFont("menlo", 18)
         self.button_rect = None
+        self.graph_button_rect = None
         self._slider_rects = []  # list of (attr, bar_rect, min_v, max_v)
         self._dragging = None  # (attr, bar_rect, min_v, max_v)
 
     def toggle(self):
-        self.level = (self.level + 1) % 6
+        self.level = (self.level + 1) % 5
 
     def handle_keydown(self, key):
         if key == pygame.K_TAB:
             self.toggle()
-        elif self.level == 5:
+        elif key == pygame.K_g:
+            self.graph_open = not self.graph_open
+        elif self.graph_open:
             if key == pygame.K_LEFT:
                 self.graph_idx = (self.graph_idx - 1) % 2
             elif key == pygame.K_RIGHT:
@@ -49,6 +53,9 @@ class HUD:
     def handle_mousedown(self, pos, car=None):
         if self.button_rect and self.button_rect.collidepoint(pos):
             self.toggle()
+            return
+        if self.graph_button_rect and self.graph_button_rect.collidepoint(pos):
+            self.graph_open = not self.graph_open
             return
         if car is not None:
             for attr, bar_rect, min_v, max_v in self._slider_rects:
@@ -73,6 +80,9 @@ class HUD:
 
     def draw(self, screen, car, lap_timer, telemetry=None, ai_stats=None):
         self._draw_toggle_button(screen)
+        self._draw_graph_button(screen)
+        if self.graph_open:
+            self._draw_graphs(screen, lap_timer, telemetry)
         if self.level == 0:
             return
         self._draw_racing_panel(screen, car, lap_timer)
@@ -83,8 +93,6 @@ class HUD:
             self._draw_lap_history(screen, lap_timer)
         if self.level == 4:
             self._draw_car_params(screen, car)
-        if self.level == 5:
-            self._draw_graphs(screen, lap_timer, telemetry)
 
     def _draw_toggle_button(self, screen):
         sw, sh = screen.get_size()
@@ -109,6 +117,26 @@ class HUD:
         )
 
         hint = self.font_label.render("[TAB]", True, (130, 130, 130))
+        screen.blit(hint, (x + btn_w // 2 - hint.get_width() // 2, y + btn_h + 3))
+
+    def _draw_graph_button(self, screen):
+        sw, sh = screen.get_size()
+        btn_w, btn_h = 64, 28
+        x = 12 + btn_w + 8
+        y = sh - 52
+
+        self.graph_button_rect = pygame.Rect(x, y, btn_w, btn_h)
+
+        surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
+        surf.fill((0, 0, 0, 180))
+        screen.blit(surf, (x, y))
+        border_color = (200, 200, 100) if self.graph_open else (160, 160, 160)
+        pygame.draw.rect(screen, border_color, self.graph_button_rect, 1)
+
+        label = self.font_btn.render("GRAPH", True, (220, 220, 220))
+        screen.blit(label, (x + btn_w // 2 - label.get_width() // 2, y + btn_h // 2 - label.get_height() // 2))
+
+        hint = self.font_label.render("[G]", True, (130, 130, 130))
         screen.blit(hint, (x + btn_w // 2 - hint.get_width() // 2, y + btn_h + 3))
 
     def _draw_panel(self, screen, x, y, lines):
