@@ -9,11 +9,13 @@ class LapTimer:
         self.center = line_center
         self.normal = forward_normal
         self.proximity = proximity_threshold
-        self.state = "waiting"   # "waiting" | "timing"
+        self.state = "waiting"  # "waiting" | "timing"
         self.start_time = 0.0
         self.laps = []
         self.prev_dist = None
         self.cooldown = 0.0
+        self.paused = False
+        self.paused_time = 0.0
 
     def update(self, pos, vel, dt):
         dist = self.normal.dot(pos - self.center)
@@ -37,8 +39,18 @@ class LapTimer:
 
         self.prev_dist = dist
 
+    def pause(self):
+        self.paused_time = self.current_time()
+        self.paused = True
+
+    def unpause(self):
+        self.paused = False
+        self.start_time += self.current_time() - self.paused_time
+
     def current_time(self):
-        if self.state == "timing":
+        if self.paused:
+            return self.paused_time
+        elif self.state == "timing":
             return pygame.time.get_ticks() / 1000.0 - self.start_time
         return 0.0
 
@@ -54,4 +66,10 @@ class LapTimer:
             laps = reversed(self.laps[-3:])  # last 3 laps
             for i, lap in enumerate(laps):
                 last_label = font.render(f"Last: {lap:.2f}s", True, config.BLACK)
-                screen.blit(last_label, (pos[0], pos[1] + label.get_height() + 4 + (last_label.get_height() * i)))
+                screen.blit(
+                    last_label,
+                    (
+                        pos[0],
+                        pos[1] + label.get_height() + 4 + (last_label.get_height() * i),
+                    ),
+                )
