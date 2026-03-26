@@ -94,6 +94,13 @@ def screen_to_game(pos):
     return (pos[0] * config.WIDTH * rs // sw, pos[1] * config.HEIGHT * rs // sh)
 
 
+class Camera:
+    def __init__(self):
+        self.zoom = 1.0
+        self.follow = False
+
+
+camera = Camera()
 car_spawn = pygame.Vector2(1100, 600)
 start_angle = 90
 car = car_module.Car(car_spawn.x, car_spawn.y, start_angle)
@@ -121,6 +128,9 @@ while running:
             if event.key == pygame.K_SPACE:
                 paused_mode = not paused_mode
 
+            if event.key == pygame.K_f:
+                camera.follow = not camera.follow
+
             if event.key == pygame.K_r:
                 # RESET
                 car.position = pygame.Vector2(car_spawn)
@@ -143,9 +153,9 @@ while running:
                     lap_timer.unpause()
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-            hud.handle_mousedown(screen_to_game(event.pos), car)
+            hud.handle_mousedown(screen_to_game(event.pos), car, camera)
         if event.type == pygame.MOUSEMOTION:
-            hud.handle_mousemotion(screen_to_game(event.pos), car)
+            hud.handle_mousemotion(screen_to_game(event.pos), car, camera)
         if event.type == pygame.MOUSEBUTTONUP:
             hud.handle_mouseup()
     game_surface.fill(config.BLACK)
@@ -189,7 +199,21 @@ while running:
                     car.velocity -= lap_timer.normal * backward_vel
                     blocked_by_line = True
 
-    game_surface.blit(track_img, (0, 0))
+    # camera-aware track draw
+    rs = config.RENDER_SCALE
+    zoom = camera.zoom
+    tw = int(config.WIDTH * zoom * rs)
+    th = int(config.HEIGHT * zoom * rs)
+    scaled_track = pygame.transform.smoothscale(track_img, (tw, th))
+    if camera.follow:
+        # track offset so car stays at viewport center
+        blit_x = config.WIDTH * rs // 2 - int(car.position.x * zoom * rs)
+        blit_y = config.HEIGHT * rs // 2 - int(car.position.y * zoom * rs)
+    else:
+        # fixed: track centered on screen, zoom from center
+        blit_x = config.WIDTH * rs // 2 - tw // 2
+        blit_y = config.HEIGHT * rs // 2 - th // 2
+    game_surface.blit(scaled_track, (blit_x, blit_y))
 
     #    for wp in waypoints:
     #        wp_size = math.ceil(max(scale_x, scale_y) * math.sqrt(2))
@@ -198,7 +222,7 @@ while running:
     #        game_surface.blit(surf, (wp.x - wp_size // 2, wp.y - wp_size // 2))
 
     if visual_mode:
-        car.draw(game_surface)
+        car.draw(game_surface, camera)
 
         if paused_mode:
             rs = config.RENDER_SCALE
@@ -216,7 +240,14 @@ while running:
         if lap_timer:
             if not paused:
                 lap_timer.update(car.position, car.velocity, dt)
-            hud.draw(game_surface, car, lap_timer, telemetry, fps=clock.get_fps())
+            hud.draw(
+                game_surface,
+                car,
+                lap_timer,
+                telemetry,
+                fps=clock.get_fps(),
+                camera=camera,
+            )
 
         if blocked_by_line:
             # temporary pannel in midle

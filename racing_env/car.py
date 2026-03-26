@@ -6,8 +6,8 @@ import config
 class Car:
     def __init__(self, x, y, angle):
         rs = config.RENDER_SCALE
-        self.surface = pygame.image.load(config.CAR_IMAGE_PATH).convert_alpha()
-        self.surface = pygame.transform.scale(self.surface, (40 * rs, 40 * rs))
+        self._base_surface = pygame.image.load(config.CAR_IMAGE_PATH).convert_alpha()
+        self._base_surface = pygame.transform.scale(self._base_surface, (40 * rs, 40 * rs))
 
         self.position = pygame.Vector2(x, y)
         self.velocity = pygame.Vector2(0, 0)
@@ -62,8 +62,19 @@ class Car:
 
         self.position += self.velocity * dt
 
-    def draw(self, screen):
+    def draw(self, screen, camera):
         rs = config.RENDER_SCALE
-        rotated = pygame.transform.rotate(self.surface, self.angle)
-        rect = rotated.get_rect(center=self.position * rs)
+        zoom = camera.zoom
+        size = int(40 * rs * zoom)
+        surf = pygame.transform.scale(self._base_surface, (size, size))
+        rotated = pygame.transform.rotate(surf, self.angle)
+        if camera.follow:
+            # camera tracks car — car always at viewport center
+            cx = config.WIDTH * rs // 2
+            cy = config.HEIGHT * rs // 2
+        else:
+            # fixed camera — car moves across the screen at world position
+            cx = int(config.WIDTH * rs // 2 + (self.position.x - config.WIDTH / 2) * zoom * rs)
+            cy = int(config.HEIGHT * rs // 2 + (self.position.y - config.HEIGHT / 2) * zoom * rs)
+        rect = rotated.get_rect(center=(cx, cy))
         screen.blit(rotated, rect.topleft)

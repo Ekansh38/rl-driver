@@ -12,6 +12,10 @@ SLIDERS = [
     ("bounce", "BOUNCE", 0.0, 1.0),
 ]
 
+CAMERA_SLIDERS = [
+    ("zoom", "ZOOM", 0.25, 3.0),
+]
+
 
 def _fmt_time(seconds):
     if seconds is None:
@@ -36,8 +40,9 @@ class HUD:
         self.font_btn = pygame.font.SysFont("menlo", 18 * rs)
         self.button_rect = None
         self.graph_button_rect = None
-        self._slider_rects = []  # list of (attr, bar_rect, min_v, max_v)
-        self._dragging = None  # (attr, bar_rect, min_v, max_v)
+        self.camera_button_rect = None
+        self._slider_rects = []  # list of (obj, attr, bar_rect, min_v, max_v)
+        self._dragging = None  # (obj, attr, bar_rect, min_v, max_v)
 
     def toggle(self):
         self.level = (self.level + 1) % 5
@@ -53,38 +58,41 @@ class HUD:
             elif key == pygame.K_RIGHT:
                 self.graph_idx = (self.graph_idx + 1) % 2
 
-    def handle_mousedown(self, pos, car=None):
+    def handle_mousedown(self, pos, car=None, camera=None):
         if self.button_rect and self.button_rect.collidepoint(pos):
             self.toggle()
             return
         if self.graph_button_rect and self.graph_button_rect.collidepoint(pos):
             self.graph_open = not self.graph_open
             return
-        if car is not None:
-            for attr, bar_rect, min_v, max_v in self._slider_rects:
-                if bar_rect.collidepoint(pos):
-                    self._dragging = (attr, bar_rect, min_v, max_v)
-                    self._apply_slider(pos, car, bar_rect, attr, min_v, max_v)
-                    return
+        if self.camera_button_rect and self.camera_button_rect.collidepoint(pos) and camera is not None:
+            camera.follow = not camera.follow
+            return
+        for obj, attr, bar_rect, min_v, max_v in self._slider_rects:
+            if bar_rect.collidepoint(pos):
+                self._dragging = (obj, attr, bar_rect, min_v, max_v)
+                self._apply_slider(pos, bar_rect, obj, attr, min_v, max_v)
+                return
 
-    def handle_mousemotion(self, pos, car):
+    def handle_mousemotion(self, pos, car, camera=None):
         if self._dragging:
-            attr, bar_rect, min_v, max_v = self._dragging
-            self._apply_slider(pos, car, bar_rect, attr, min_v, max_v)
+            obj, attr, bar_rect, min_v, max_v = self._dragging
+            self._apply_slider(pos, bar_rect, obj, attr, min_v, max_v)
 
     def handle_mouseup(self):
         self._dragging = None
 
-    def _apply_slider(self, pos, car, bar_rect, attr, min_v, max_v):
+    def _apply_slider(self, pos, bar_rect, obj, attr, min_v, max_v):
         t = (pos[0] - bar_rect.x) / bar_rect.width
         t = max(0.0, min(1.0, t))
         value = min_v + t * (max_v - min_v)
-        setattr(car, attr, round(value, 2))
+        setattr(obj, attr, round(value, 2))
 
-    def draw(self, screen, car, lap_timer, telemetry=None, ai_stats=None, fps=None):
+    def draw(self, screen, car, lap_timer, telemetry=None, ai_stats=None, fps=None, camera=None):
         self._fps = fps
         self._draw_toggle_button(screen)
         self._draw_graph_button(screen)
+        self._draw_camera_button(screen, camera)
         if self.graph_open:
             self._draw_graphs(screen, lap_timer, telemetry)
         if self.level == 0:
@@ -96,7 +104,7 @@ class HUD:
         if self.level == 3:
             self._draw_lap_history(screen, lap_timer)
         if self.level == 4:
-            self._draw_car_params(screen, car)
+            self._draw_car_params(screen, car, camera)
 
     def _draw_toggle_button(self, screen):
         rs = self.rs
@@ -149,6 +157,28 @@ class HUD:
         )
 
         hint = self.font_label.render("[G]", True, (130, 130, 130))
+        screen.blit(hint, (x + btn_w // 2 - hint.get_width() // 2, y + btn_h + 3 * rs))
+
+    def _draw_camera_button(self, screen, camera):
+        rs = self.rs
+        sw, sh = screen.get_size()
+        btn_w, btn_h = 64 * rs, 28 * rs
+        x = 12 * rs + (btn_w + 8 * rs) * 2
+        y = sh - 52 * rs
+
+        self.camera_button_rect = pygame.Rect(x, y, btn_w, btn_h)
+
+        surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
+        surf.fill((0, 0, 0, 180))
+        screen.blit(surf, (x, y))
+        fixed = camera is not None and not camera.follow
+        border_color = (100, 200, 255) if fixed else (160, 160, 160)
+        pygame.draw.rect(screen, border_color, self.camera_button_rect, 1)
+
+        label = self.font_btn.render("CAM", True, (220, 220, 220))
+        screen.blit(label, (x + btn_w // 2 - label.get_width() // 2, y + btn_h // 2 - label.get_height() // 2))
+
+        hint = self.font_label.render("[F]", True, (130, 130, 130))
         screen.blit(hint, (x + btn_w // 2 - hint.get_width() // 2, y + btn_h + 3 * rs))
 
     def _draw_panel(self, screen, x, y, lines):
@@ -325,15 +355,19 @@ class HUD:
                 (col_x + 160 * rs, row_y + 6 * rs),
             )
 
-    def _draw_car_params(self, screen, car):
+    def _draw_car_params(self, screen, car, camera=None):
         rs = self.rs
         sw, sh = screen.get_size()
         self._slider_rects = []
 
+        all_sliders = [(car, attr, label, mn, mx) for attr, label, mn, mx in SLIDERS]
+        if camera is not None:
+            all_sliders += [(camera, attr, label, mn, mx) for attr, label, mn, mx in CAMERA_SLIDERS]
+
         panel_w = 420 * rs
         row_h = 42 * rs
         header_h = self.LINE_HEIGHT + self.PADDING
-        panel_h = header_h + len(SLIDERS) * row_h + self.PADDING
+        panel_h = header_h + len(all_sliders) * row_h + self.PADDING
         x = sw // 2 - panel_w // 2
         y = sh // 2 - panel_h // 2
 
@@ -349,7 +383,7 @@ class HUD:
         bar_w = 150 * rs
         bar_h = 10 * rs
 
-        for i, (attr, label, min_v, max_v) in enumerate(SLIDERS):
+        for i, (obj, attr, label, min_v, max_v) in enumerate(all_sliders):
             row_y = y + header_h + i * row_h
             cy = row_y + row_h // 2
 
@@ -358,16 +392,16 @@ class HUD:
                 (x + self.PADDING, cy - 8 * rs),
             )
 
-            value = getattr(car, attr)
+            value = getattr(obj, attr)
             t = max(0.0, min(1.0, (value - min_v) / (max_v - min_v)))
             fill_w = int(bar_w * t)
 
             bar_rect = pygame.Rect(bar_x, cy - bar_h // 2, bar_w, bar_h)
-            self._slider_rects.append((attr, bar_rect, min_v, max_v))
+            self._slider_rects.append((obj, attr, bar_rect, min_v, max_v))
 
             pygame.draw.rect(screen, (50, 50, 50), bar_rect)
             if fill_w > 0:
-                is_active = self._dragging and self._dragging[0] == attr
+                is_active = self._dragging and self._dragging[1] == attr
                 fill_color = (120, 200, 120) if is_active else (80, 160, 80)
                 pygame.draw.rect(
                     screen, fill_color, (bar_x, cy - bar_h // 2, fill_w, bar_h)
