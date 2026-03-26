@@ -152,8 +152,7 @@ while running:
             # HUD handles graph_open toggle on G
             hud.handle_keydown(event.key)
 
-            # paused is derived, true if user paused or graph is open
-            paused = paused_mode or hud.graph_open
+            paused = paused_mode or hud.graph_open or hud.params_open
             if lap_timer:
                 if paused and not was_paused:
                     lap_timer.pause()
@@ -161,7 +160,14 @@ while running:
                     lap_timer.unpause()
 
         if event.type == pygame.MOUSEBUTTONDOWN:
+            was_paused = paused
             hud.handle_mousedown(screen_to_game(event.pos), car, camera)
+            paused = paused_mode or hud.graph_open or hud.params_open
+            if lap_timer:
+                if paused and not was_paused:
+                    lap_timer.pause()
+                elif not paused and was_paused:
+                    lap_timer.unpause()
         if event.type == pygame.MOUSEMOTION:
             hud.handle_mousemotion(screen_to_game(event.pos), car, camera)
         if event.type == pygame.MOUSEBUTTONUP:

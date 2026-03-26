@@ -35,24 +35,28 @@ class HUD:
         self.level = 0
         self.graph_open = False
         self.graph_idx = 0
+        self.params_open = False
         self.font = pygame.font.SysFont("menlo", int(22 * rs))
         self.font_label = pygame.font.SysFont("menlo", int(17 * rs))
         self.font_btn = pygame.font.SysFont("menlo", int(18 * rs))
         self.button_rect = None
         self.graph_button_rect = None
         self.camera_button_rect = None
+        self.params_button_rect = None
         self._slider_rects = []  # list of (obj, attr, bar_rect, min_v, max_v)
         self._dragging = None  # (obj, attr, bar_rect, min_v, max_v)
         self._reset_button_rect = None
 
     def toggle(self):
-        self.level = (self.level + 1) % 5
+        self.level = (self.level + 1) % 4
 
     def handle_keydown(self, key):
         if key == pygame.K_TAB:
             self.toggle()
         elif key == pygame.K_g:
             self.graph_open = not self.graph_open
+        elif key == pygame.K_p:
+            self.params_open = not self.params_open
         elif self.graph_open:
             if key == pygame.K_LEFT:
                 self.graph_idx = (self.graph_idx - 1) % 2
@@ -68,6 +72,9 @@ class HUD:
             return
         if self.camera_button_rect and self.camera_button_rect.collidepoint(pos) and camera is not None:
             camera.follow = not camera.follow
+            return
+        if self.params_button_rect and self.params_button_rect.collidepoint(pos):
+            self.params_open = not self.params_open
             return
         if self._reset_button_rect and self._reset_button_rect.collidepoint(pos):
             if car is not None:
@@ -99,13 +106,16 @@ class HUD:
 
     def draw(self, screen, car, lap_timer, telemetry=None, ai_stats=None, fps=None, camera=None):
         self._fps = fps
-        if self.level != 4:
+        if not self.params_open:
             self._reset_button_rect = None
         self._draw_toggle_button(screen)
         self._draw_graph_button(screen)
         self._draw_camera_button(screen, camera)
+        self._draw_params_button(screen)
         if self.graph_open:
             self._draw_graphs(screen, lap_timer, telemetry)
+        if self.params_open:
+            self._draw_car_params(screen, car, camera)
         if self.level == 0:
             return
         self._draw_racing_panel(screen, car, lap_timer)
@@ -114,8 +124,6 @@ class HUD:
             self._draw_ai_panel(screen, ai_stats)
         if self.level == 3:
             self._draw_lap_history(screen, lap_timer)
-        if self.level == 4:
-            self._draw_car_params(screen, car, camera)
 
     def _draw_toggle_button(self, screen):
         rs = self.rs
@@ -190,6 +198,27 @@ class HUD:
         screen.blit(label, (x + btn_w // 2 - label.get_width() // 2, y + btn_h // 2 - label.get_height() // 2))
 
         hint = self.font_label.render("[F]", True, (130, 130, 130))
+        screen.blit(hint, (x + btn_w // 2 - hint.get_width() // 2, y + btn_h + 3 * rs))
+
+    def _draw_params_button(self, screen):
+        rs = self.rs
+        sw, sh = screen.get_size()
+        btn_w, btn_h = 64 * rs, 28 * rs
+        x = 12 * rs + (btn_w + 8 * rs) * 3
+        y = sh - 52 * rs
+
+        self.params_button_rect = pygame.Rect(x, y, btn_w, btn_h)
+
+        surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
+        surf.fill((0, 0, 0, 180))
+        screen.blit(surf, (x, y))
+        border_color = (200, 160, 255) if self.params_open else (160, 160, 160)
+        pygame.draw.rect(screen, border_color, self.params_button_rect, 1)
+
+        label = self.font_btn.render("PARAMS", True, (220, 220, 220))
+        screen.blit(label, (x + btn_w // 2 - label.get_width() // 2, y + btn_h // 2 - label.get_height() // 2))
+
+        hint = self.font_label.render("[P]", True, (130, 130, 130))
         screen.blit(hint, (x + btn_w // 2 - hint.get_width() // 2, y + btn_h + 3 * rs))
 
     def _draw_panel(self, screen, x, y, lines):
