@@ -35,13 +35,12 @@ class Car:
         if keys["down"]:
             self.velocity -= forward * self.brake_force * dt
 
-        if self.velocity.length() > 0:
-            self.velocity *= 1 - (0.5 * dt)
-        # Clamp speed
-        if self.velocity.length() > self.max_speed:
-            self.velocity.scale_to_length(self.max_speed)
-
         speed = self.velocity.length()
+        if speed > 0:
+            self.velocity *= 1 - (0.5 * dt)
+            if speed > self.max_speed:
+                self.velocity.scale_to_length(self.max_speed)
+            speed = self.velocity.length()
         speed_ratio = speed / self.max_speed
         turn_grip = (speed_ratio / (speed_ratio + 0.1)) * (
             1.0 / (1.0 + (speed_ratio * self.turn_falloff) ** 2)

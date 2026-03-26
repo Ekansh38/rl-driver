@@ -92,6 +92,8 @@ else:
 hud = HUD()
 telemetry = LapTelemetry()
 prev_lap_count = 0
+telemetry_accum = 0.0
+TELEMETRY_INTERVAL = 1 / 60
 
 
 def screen_to_game(pos):
@@ -122,7 +124,7 @@ while running:
     else:
         dt = 1 / 60
 
-    clock.tick(config.FPS)
+    clock.tick(config.FPS if visual_mode else 0)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -189,11 +191,14 @@ while running:
     if not paused:
         car.update(dt, keys)
 
-        # record telemetry
-        if lap_timer and lap_timer.state == "timing":
+        # record telemetry at ~60 samples/sec regardless of FPS
+        telemetry_accum += dt
+        if lap_timer and lap_timer.state == "timing" and telemetry_accum >= TELEMETRY_INTERVAL:
             telemetry.record(
                 car.velocity.length(), keys["up"], keys["brake"] or keys["down"]
             )
+        if telemetry_accum >= TELEMETRY_INTERVAL:
+            telemetry_accum -= TELEMETRY_INTERVAL
         if lap_timer and len(lap_timer.laps) > prev_lap_count:
             telemetry.finish_lap()
             prev_lap_count = len(lap_timer.laps)
@@ -224,7 +229,6 @@ while running:
         blit_x = config.WIDTH * rs // 2 - int(car.position.x * zoom * rs)
         blit_y = config.HEIGHT * rs // 2 - int(car.position.y * zoom * rs)
     else:
-        # fixed: track centered on screen, zoom from center
         blit_x = config.WIDTH * rs // 2 - tw // 2
         blit_y = config.HEIGHT * rs // 2 - th // 2
     game_surface.blit(scaled_track, (blit_x, blit_y))
