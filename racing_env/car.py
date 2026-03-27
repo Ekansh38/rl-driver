@@ -62,8 +62,12 @@ class Car:
         zoom = camera.zoom
         size = int(40 * rs * zoom)
         surf = pygame.transform.scale(self._base_surface, (size, size))
-        rotated = pygame.transform.rotate(surf, self.angle)
-        if camera.follow:
+        angle = self.angle
+        if camera.follow == 2:
+            angle = 0
+        rotated = pygame.transform.rotate(surf, angle)
+
+        if camera.follow > 0:
             cx = config.WIDTH * rs // 2
             cy = config.HEIGHT * rs // 2
         else:
@@ -73,5 +77,6 @@ class Car:
             cy = int(
                 config.HEIGHT * rs // 2 + (self.position.y - world_h / 2) * zoom * rs
             )
+
         rect = rotated.get_rect(center=(cx, cy))
         screen.blit(rotated, rect.topleft)

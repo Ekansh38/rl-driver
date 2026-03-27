@@ -71,7 +71,10 @@ class HUD:
             self.graph_open = not self.graph_open
             return
         if self.camera_button_rect and self.camera_button_rect.collidepoint(pos) and camera is not None:
-            camera.follow = not camera.follow
+            if camera.follow == 2:
+                camera.follow = 0
+            else:
+                camera.follow += 1
             return
         if self.params_button_rect and self.params_button_rect.collidepoint(pos):
             self.params_open = not self.params_open
@@ -90,7 +93,7 @@ class HUD:
                 self._apply_slider(pos, bar_rect, obj, attr, min_v, max_v)
                 return
 
-    def handle_mousemotion(self, pos, car, camera=None):
+    def handle_mousemotion(self, pos):
         if self._dragging:
             obj, attr, bar_rect, min_v, max_v = self._dragging
             self._apply_slider(pos, bar_rect, obj, attr, min_v, max_v)

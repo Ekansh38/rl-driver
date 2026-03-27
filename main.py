@@ -105,7 +105,10 @@ def screen_to_game(pos):
 class Camera:
     def __init__(self):
         self.zoom = 1.0
-        self.follow = world_w > config.WIDTH or world_h > config.HEIGHT # if the world is larger than the screen
+        self.follow = 0 # 0=static,1=follow,2=follow+angle
+
+        if world_w > config.WIDTH or world_h > config.HEIGHT: # if the world is larger than the screen
+            self.follow = 1
 
 
 camera = Camera()
@@ -139,7 +142,10 @@ while running:
                 paused_mode = not paused_mode
 
             if event.key == pygame.K_f:
-                camera.follow = not camera.follow
+                if camera.follow == 2:
+                    camera.follow = 0
+                else:
+                    camera.follow += 1
 
             if event.key == pygame.K_r:
                 # RESET
@@ -171,7 +177,7 @@ while running:
                 elif not paused and was_paused:
                     lap_timer.unpause()
         if event.type == pygame.MOUSEMOTION:
-            hud.handle_mousemotion(screen_to_game(event.pos), car, camera)
+            hud.handle_mousemotion(screen_to_game(event.pos))
         if event.type == pygame.MOUSEBUTTONUP:
             hud.handle_mouseup()
     game_surface.fill(bg_color)
@@ -223,15 +229,31 @@ while running:
     zoom = camera.zoom
     tw = int(world_w * zoom * rs)
     th = int(world_h * zoom * rs)
+
     scaled_track = pygame.transform.smoothscale(track_img, (tw, th))
-    if camera.follow:
+    screen_width = config.WIDTH * rs
+    screen_height = config.HEIGHT * rs
+    if camera.follow > 0:
         # track offset so car stays at viewport center
-        blit_x = config.WIDTH * rs // 2 - int(car.position.x * zoom * rs)
-        blit_y = config.HEIGHT * rs // 2 - int(car.position.y * zoom * rs)
+        blit_x = screen_width // 2 - int(car.position.x * zoom * rs)
+        blit_y = screen_height // 2 - int(car.position.y * zoom * rs)
+        rect = (blit_x, blit_y)
     else:
         blit_x = config.WIDTH * rs // 2 - tw // 2
         blit_y = config.HEIGHT * rs // 2 - th // 2
-    game_surface.blit(scaled_track, (blit_x, blit_y))
+        rect = (blit_x, blit_y)
+    if camera.follow == 2:
+        screen_center = pygame.Vector2(screen_width // 2, screen_height //2)
+        track_center_world = (world_w//2, world_h//2)
+
+        car_to_track_vector = (track_center_world - car.position) * zoom * rs
+
+        rotated_vector = car_to_track_vector.rotate(car.angle)
+        scaled_track = pygame.transform.rotozoom(scaled_track, -car.angle, 1)
+
+        rect = scaled_track.get_rect(center=screen_center + rotated_vector)
+
+    game_surface.blit(scaled_track, rect)
 
     #    for wp in waypoints:
     #        wp_size = math.ceil(max(scale_x, scale_y) * math.sqrt(2))
